@@ -2,12 +2,15 @@
 
 #include <stdlib.h>
 
-/*
-  [CREATE]
-  TODO: initialize struct if needed
+/**
+ * @todo initialize struct if needed
+ * @brief [CREATE] RB tree 구조체 생성
+ * @details root 노드 SENTINEL로 구현
+ * @param void
+ * @return rbtree* 생성한 구조체의 포인터
 */
 rbtree *new_rbtree(void) {
-  rbtree *p = (rbtree *)calloc(1, sizeof(rbtree));
+  rbtree *p = (rbtree *)calloc(1, sizeof(rbtree)); 
   node_t *nil_node = (node_t *)calloc(1, sizeof(node_t));
   nil_node -> color = RBTREE_BLACK;
   p -> root = nil_node;
@@ -15,36 +18,52 @@ rbtree *new_rbtree(void) {
   return p;
 }
 
+/**
+ * @brief [DELETE] RB tree 구조체의 내부 노드들 메모리 반환
+ * @details - Related Function @n     - `delete_rbtree`
+ * @param rbtree* t 트리 포인터
+ * @param node_t* x 노드 포인터
+ * @return void
+*/
 void delete_inner_node(rbtree *t, node_t *x){
   if (x != t -> nil){
-    delete_inner_node(t, x -> left);
-    delete_inner_node(t, x -> right);
+    delete_inner_node(t, x -> left);  // 왼쪽 자식 노드들 모두 제거
+    delete_inner_node(t, x -> right); // 오른쪽 자식 노드들 모두 제거
     
-    free(x);
+    free(x); // 단말 노드 : 메모리 해제
     x = NULL;
   }
 }
 
-/*
-  [DELETE]
-  TODO: reclaim the tree nodes's memory
+/**
+ * @todo reclaim the tree nodes's memory
+ * @brief [DELETE] RB tree 구조체 자체의 메모리 반환
+ * @details - Related Function @n     - `delete_inner_node`
+ * @param rbtree* t 트리 포인터
+ * @return void
 */
 void delete_rbtree(rbtree *t) {
-  delete_inner_node(t, t -> root); // 내부 노드 삭제
-  free(t -> nil);
+  delete_inner_node(t, t -> root); // 연결된 내부 노드들 모두 제거
+  free(t -> nil);   // 내부 노드 모두 삭제 후, NIL 노드 해제
   t -> nil = NULL;
-  free(t);
+  free(t);          // RB tree 구조체 자체 해제
   t = NULL;
 }
 
-/* INSERT */
+/**
+ * @brief [INSERT] node x에 대한 left-rotation 연산 수행
+ * @details - Related Function @n     - `rbtree_insert`
+ * @param rbtree* t 트리 포인터
+ * @param node_t* x 노드 포인터 
+ * @return void
+*/
 void left_rotate(rbtree *t, node_t *x) {
   node_t *y = x -> right;
-  x -> right = y -> left;
+  x -> right = y -> left; // y의 왼쪽 서브 트리를 x의 오른쪽 서브 트리로 옮긴다.
   if (y -> left != t -> nil) {
     y -> left -> parent = x;
   }
-  y -> parent = x -> parent;
+  y -> parent = x -> parent;  // x의 부모를 y로 연결한다.
   if (x -> parent == t -> nil){
     t -> root = y;
   } else if (x == x -> parent -> left){
@@ -52,18 +71,25 @@ void left_rotate(rbtree *t, node_t *x) {
   } else {
     x -> parent -> right = y;
   }
-  y -> left = x;
+  y -> left = x;  // x를 y의 왼쪽으로 놓는다.
   x -> parent = y;
-  return;
 }
 
+
+/**
+ * @brief [INSERT] node x에 대한 right-rotation 연산 수행
+ * @details - Related Function @n     - `rbtree_insert`
+ * @param rbtree* t 트리 포인터
+ * @param node_t* x 노드 포인터 
+ * @return void
+*/
 void right_rotate(rbtree *t, node_t *x) {
   node_t *y = x -> left;
-  x -> left = y -> right;
+  x -> left = y -> right; // y의 오른쪽 서브 트리를 x의 왼쪽 서브 트리로 옮긴다.
   if (y -> right != t -> nil) {
     y -> right -> parent = x;
   }
-  y -> parent = x -> parent;
+  y -> parent = x -> parent; // y의 부모를 x로 연결한다.
   if (x -> parent == t -> nil){
     t -> root = y;
   } else if (x == x -> parent -> right){
@@ -71,28 +97,32 @@ void right_rotate(rbtree *t, node_t *x) {
   } else {
     x -> parent -> left = y;
   }
-  y -> right = x;
+  y -> right = x; // x를 y의 오른쪽으로 놓는다.
   x -> parent = y;
-  return;
 }
 
-
-// 새로 삽입하는 노드를 항상 RED로 지정함으로써 
-// RB Tree의 특성이 위반되므로 이를 교정하는 작업 수행
+/**
+ * @brief [INSERT] 새로 삽입하는 노드를 항상 RED로 지정함으로써 발생하는 위반된 규칙 교정
+ * @details - Related Function @n     - `rbtree_insert`
+ * @param rbtree* t 트리 포인터
+ * @param node_t* x 노드 포인터 
+ * @return void
+*/
 void rbtree_insert_fixup(rbtree *t, node_t *z) {
   while (z -> parent -> color == RBTREE_RED){
     if (z -> parent == z -> parent -> parent -> left){
       node_t *y = z -> parent -> parent -> right;
-      if (y -> color == RBTREE_RED){
+      
+      if (y -> color == RBTREE_RED){ // case 1
         z -> parent -> color = RBTREE_BLACK;
         y -> color = RBTREE_BLACK;
         z -> parent -> parent -> color = RBTREE_RED;
         z = z -> parent -> parent;
-      } else {
-        if (z == z -> parent -> right){
+      } else { 
+        if (z == z -> parent -> right){ // case 2
         z = z -> parent;
         left_rotate(t, z);
-        }
+        } // case 3
         z -> parent -> color = RBTREE_BLACK;
         z -> parent -> parent -> color = RBTREE_RED;
         right_rotate(t, z -> parent -> parent);
@@ -119,6 +149,13 @@ void rbtree_insert_fixup(rbtree *t, node_t *z) {
   t -> root -> color = RBTREE_BLACK;
 }
 
+/**
+ * @brief [INSERT] RB Tree에 key 추가
+ * @details
+ * @param rbtree* t 트리 포인터
+ * @param node_t* x 노드 포인터  
+ * @return void
+*/
 node_t *rbtree_insert(rbtree *t, const key_t key) {
   // TODO: implement insert
 
@@ -333,40 +370,3 @@ int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n){
   return 0;
 }
 
-// void print_tree(rbtree* t, node_t* node, int level) {
-//     if (node == t->nil)
-//         return;
-//     print_tree(t, node->right, level + 1);
-//     for (int i = 0; i < level; i++) {
-//         printf("    ");
-//     }
-//     printf("%d:%d\n", node->key, node->color);
-//     print_tree(t, node->left, level + 1);
-// }
-
-
-// int main(int argc, char *argv[]) {
-//     rbtree *p = new_rbtree();
-//     p -> root = rbtree_insert(p, 8);
-//     p -> root = rbtree_insert(p, 1);
-//     p -> root = rbtree_insert(p, 11);
-//     p -> root = rbtree_insert(p, 6);
-//     p -> root = rbtree_insert(p, 15);
-//     p -> root = rbtree_insert(p, 17);
-//     p -> root = rbtree_insert(p, 25);
-//     p -> root = rbtree_insert(p, 22);
-//     p -> root = rbtree_insert(p, 13);
-//     p -> root = rbtree_insert(p, 27);
-    
-
-//     node_t *min_node = rbtree_min(p);
-//     node_t *max_node = rbtree_max(p);
-//     printf("min_node : %d\n", min_node -> key);
-//     printf("max_node : %d\n", max_node -> key);
-//     print_tree(p, p -> root, 0);
-//     rbtree_erase(p, p->root);
-//     delete_rbtree(p);
-//     printf("%p\n", p);
-//     printf("delete\n");
-//     // print_tree(p, p -> root, 0);
-// }
